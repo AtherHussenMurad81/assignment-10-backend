@@ -29,19 +29,18 @@ async function run() {
 
     const db = client.db("courses");
     const courseCollection = db.collection("course");
-    // console.log(courseCollection);
-    const enrolledCourseCollection =
-      //user and email and id
-      //   get all course data
 
-      app.get("/all-course", async (req, res) => {
-        const result = await courseCollection
-          .find()
-          .sort({ price: "asc" })
-          .toArray();
-        // console.log(result);
-        res.send(result);
-      });
+    const enrollCollection = db.collection("myEnroll");
+    //   get all course data
+
+    app.get("/all-course", async (req, res) => {
+      const result = await courseCollection
+        .find()
+        .sort({ price: "asc" })
+        .toArray();
+      // console.log(result);
+      res.send(result);
+    });
 
     app.get("/all-course/:id", async (req, res) => {
       const { id } = req.params;
@@ -63,7 +62,42 @@ async function run() {
         .toArray();
       res.send(result);
     });
-    // Put here
+
+    // ------------------ Enroll a course ------------------
+    app.post("/enroll", async (req, res) => {
+      const enrollData = req.body;
+
+      // prevent duplicate enroll
+      const alreadyEnrolled = await enrollCollection.findOne({
+        courseId: enrollData.courseId,
+        studentEmail: enrollData.studentEmail,
+      });
+
+      if (alreadyEnrolled) {
+        return res.send({ message: "Already Enrolled" });
+      }
+
+      const result = await enrollCollection.insertOne(enrollData);
+      res.send(result);
+    });
+
+    // ------------------ Get my enrolled courses (POST) ------------------
+    app.post("/my-enrolled-courses", async (req, res) => {
+      const { email } = req.body;
+      const result = await enrollCollection
+        .find({ studentEmail: email })
+        .toArray();
+      res.send(result);
+    });
+
+    // ------------------ Get my enrolled courses (GET alternative) ------------------
+    app.get("/my-enrolls", async (req, res) => {
+      const email = req.query.email;
+      const result = await enrollCollection
+        .find({ studentEmail: email })
+        .toArray();
+      res.send(result);
+    });
 
     app.put("/my-course/:id", async (req, res) => {
       const { id } = req.params;
